@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.routes.auth import router as auth_router
+from app.routes.documents import router as documents_router
 
 # Ensure all models are imported so metadata binds correctly
 import app.models  # noqa: F401
@@ -35,6 +36,7 @@ app.add_middleware(
 
 # Include API v1 routers
 app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
+app.include_router(documents_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/api/health", tags=["Health"])
