@@ -14,6 +14,8 @@ from app.middleware.auth_deps import get_current_user
 from app.services.authz_service import AuthorizationService
 from app.services.storage_service import StorageService
 from app.services.audit_service import AuditService
+from app.ai.extractor import DocumentTextExtractor
+from app.ai.vector_store import vector_store
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -50,6 +52,15 @@ async def upload_document(
         content_type=file.content_type
     )
 
+    # Trigger text extraction and vector chunk indexing
+    full_path = StorageService.get_file_path(storage_path)
+    extracted_text, ext_status = DocumentTextExtractor.extract_text(full_path, mime_type)
+    if not extracted_text:
+        # Fallback to title and description for semantic indexing if no text extracted from PDF
+        if title or description:
+            extracted_text = f"{title}. {description or ''}".strip()
+            ext_status = "COMPLETED"
+
     doc = Document(
         title=title,
         description=description,
@@ -59,11 +70,15 @@ async def upload_document(
         mime_type=mime_type,
         category=category,
         owner_id=current_user.id,
-        extraction_status="PENDING"
+        extracted_text=extracted_text,
+        extraction_status=ext_status
     )
     db.add(doc)
     db.commit()
     db.refresh(doc)
+
+    if doc.extracted_text:
+        vector_store.chunk_text(doc.id, doc.extracted_text)
 
     # Audit logging
     client_ip = request.client.host if request.client else "unknown"
@@ -291,8 +306,9 @@ def delete_document(
             detail="Access denied: Only the document owner can delete this document."
         )
 
-    # Remove storage file
+    # Remove storage file and vector index
     StorageService.delete_file(doc.storage_path)
+    vector_store.delete_document_chunks(doc.id)
 
     # Log before deleting DB row
     AuditService.log_event(

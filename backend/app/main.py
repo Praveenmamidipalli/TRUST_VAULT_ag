@@ -9,6 +9,7 @@ from app.routes.documents import router as documents_router
 from app.routes.permissions import router as permissions_router
 from app.routes.audit import router as audit_router
 from app.routes.admin import router as admin_router
+from app.routes.ai import router as ai_router
 
 # Ensure all models are imported so metadata binds correctly
 import app.models  # noqa: F401
@@ -43,6 +44,7 @@ app.include_router(documents_router, prefix=settings.API_V1_PREFIX)
 app.include_router(permissions_router, prefix=settings.API_V1_PREFIX)
 app.include_router(audit_router, prefix=settings.API_V1_PREFIX)
 app.include_router(admin_router, prefix=settings.API_V1_PREFIX)
+app.include_router(ai_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/api/health", tags=["Health"])
