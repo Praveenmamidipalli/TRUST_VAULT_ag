@@ -19,6 +19,20 @@ import app.models  # noqa: F401
 async def lifespan(app: FastAPI):
     # Initialize database tables on application startup
     Base.metadata.create_all(bind=engine)
+
+    # Pre-index existing documents with extracted text into the in-memory vector store
+    try:
+        from app.core.database import SessionLocal
+        from app.models.document import Document
+        from app.ai.vector_store import vector_store
+        with SessionLocal() as db:
+            docs = db.query(Document).filter(Document.extracted_text.isnot(None)).all()
+            for doc in docs:
+                if doc.extracted_text and doc.extracted_text.strip():
+                    vector_store.chunk_text(doc.id, doc.extracted_text)
+    except Exception as e:
+        print(f"[!] Warning during vector store warmup: {e}")
+
     yield
 
 

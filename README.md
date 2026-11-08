@@ -180,7 +180,7 @@ pip install -r backend/requirements.txt
 python scripts/seed_db.py
 
 # Start FastAPI development server
-uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+uvicorn app.main:app --app-dir backend --reload --host 127.0.0.1 --port 8000
 ```
 
 #### 2. Frontend Setup

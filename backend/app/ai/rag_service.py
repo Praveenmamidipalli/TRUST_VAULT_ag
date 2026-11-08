@@ -27,10 +27,13 @@ class RAGService:
         if not user.is_active:
             return []
 
-        # Subquery for shared document IDs
+        # Subquery for shared document IDs (must be active)
         shared_subquery = (
             db.query(DocumentPermission.document_id)
-            .filter(DocumentPermission.user_id == user.id)
+            .filter(
+                DocumentPermission.user_id == user.id,
+                DocumentPermission.is_active.is_(True)
+            )
             .subquery()
         )
 
@@ -60,21 +63,30 @@ class RAGService:
         authorized_ids = cls.get_user_authorized_document_ids(user, db)
         if not authorized_ids:
             return {
-                "answer": "You do not currently have access to any documents in the vault to analyze.",
+                "answer": "You do not currently have access to any documents in the vault to analyze. Please upload a document or ask a document owner to share one with your account.",
                 "cited_documents": [],
                 "insufficient_evidence": True,
                 "authorized_docs_searched": 0
             }
 
-        # 2. Vector search strictly within authorized IDs
+        # 2. Lazy sync: Ensure chunks exist in memory for all authorized documents
+        indexed_doc_ids = set(c.document_id for c in vector_store.chunks)
+        missing_ids = [did for did in authorized_ids if did not in indexed_doc_ids]
+        if missing_ids:
+            missing_docs = db.query(Document).filter(Document.id.in_(missing_ids)).all()
+            for doc in missing_docs:
+                if doc.extracted_text and doc.extracted_text.strip():
+                    vector_store.chunk_text(doc.id, doc.extracted_text)
+
+        # 3. Vector search strictly within authorized IDs
         matched_chunks = vector_store.search(
             query=question,
             authorized_document_ids=authorized_ids,
             top_k=4,
-            min_similarity=0.20
+            min_similarity=0.05
         )
 
-        # 3. Handle insufficient evidence
+        # 4. Handle insufficient evidence
         if not matched_chunks:
             # Audit log query
             AuditService.log_event(
@@ -85,7 +97,7 @@ class RAGService:
                 details={"ip": client_ip, "query": question, "matched_chunks": 0}
             )
             return {
-                "answer": "Based strictly on your authorized documents, there is insufficient evidence to answer this question.",
+                "answer": "Based strictly on your authorized documents, there is insufficient evidence to answer this question. Try searching for specific terms (e.g. 'settlement', 'vesting', 'deadline', 'revenue').",
                 "cited_documents": [],
                 "insufficient_evidence": True,
                 "authorized_docs_searched": len(authorized_ids)
