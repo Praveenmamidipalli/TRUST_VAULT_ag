@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trustvault-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-trustvault}
+      POSTGRES_USER: ${POSTGRES_USER:-vaultadmin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SuperSecretVaultDbPass2026!}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vaultadmin} -d ${POSTGRES_DB:-trustvault}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vault-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trustvault-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vaultadmin}:${POSTGRES_PASSWORD:-SuperSecretVaultDbPass2026!}@postgres:5432/${POSTGRES_DB:-trustvault}
+      SECRET_KEY: ${SECRET_KEY:-trustvault-production-secret-key-replace-with-openssl-rand-hex-64}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      STORAGE_DIR: /app/storage/private
+    volumes:
+      - vault_storage:/app/storage/private
+    networks:
+      - vault-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: trustvault-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - vault-net
+
+volumes:
+  postgres_data:
+  vault_storage:
+
+networks:
+  vault-net:
+    driver: bridge
