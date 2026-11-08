@@ -15,6 +15,7 @@ from app.models.enums import UserRole, AuditAction, AuditResult
 from app.schemas.user import UserOut
 from app.middleware.auth_deps import require_admin
 from app.services.audit_service import AuditService
+from app.ai.anomaly_detector import AnomalyDetector
 
 router = APIRouter(prefix="/admin", tags=["Administration & Reporting"])
 
@@ -217,3 +218,18 @@ def export_audit_csv(
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=trustvault_compliance_audit_log.csv"}
     )
+
+
+@router.get("/anomalies")
+def get_security_anomalies(
+    lookback_minutes: int = Query(120, ge=5, le=1440),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Analyzes recent audit trail for suspicious patterns (bulk downloads, brute force probing). Admin only."""
+    alerts = AnomalyDetector.detect_anomalies(db=db, lookback_minutes=lookback_minutes)
+    return {
+        "lookback_minutes": lookback_minutes,
+        "total_alerts": len(alerts),
+        "alerts": alerts
+    }

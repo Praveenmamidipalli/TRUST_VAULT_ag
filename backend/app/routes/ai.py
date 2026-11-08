@@ -10,6 +10,7 @@ from app.middleware.auth_deps import get_current_user
 from app.services.authz_service import AuthorizationService
 from app.ai.rag_service import RAGService
 from app.ai.vector_store import vector_store
+from app.ai.classifier import document_classifier
 
 router = APIRouter(prefix="/ai", tags=["AI Document Intelligence"])
 
@@ -93,4 +94,66 @@ def get_document_ai_status(
         "is_classified": doc.is_classified,
         "has_extracted_text": bool(doc.extracted_text),
         "text_preview": (doc.extracted_text[:200] + "...") if doc.extracted_text else None
+    }
+
+
+class ClassifyTextPayload(BaseModel):
+    text: str = Field(..., min_length=5, max_length=10000)
+
+
+@router.post("/classify")
+def classify_text(
+    payload: ClassifyTextPayload,
+    current_user: User = Depends(get_current_user)
+):
+    """Suggests an enterprise category based on content text."""
+    category, confidence = document_classifier.predict_category(payload.text)
+    return {
+        "suggested_category": category.value,
+        "confidence": confidence,
+        "security_note": "AI classification is purely advisory and never modifies access permissions."
+    }
+
+
+@router.post("/documents/{document_id}/classify")
+def classify_document(
+    document_id: int,
+    apply_update: bool = False,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Predicts category for an existing document. Owner can optionally apply the suggestion."""
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    if not AuthorizationService.can_read_document(current_user, doc, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: You do not have permission to inspect this document."
+        )
+
+    text_to_classify = doc.extracted_text or f"{doc.title} {doc.description or ''}"
+    category, confidence = document_classifier.predict_category(text_to_classify)
+
+    updated = False
+    if apply_update:
+        if not AuthorizationService.can_edit_document(current_user, doc, db):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: EDIT permission required to update document category."
+            )
+        doc.category = category
+        doc.is_classified = True
+        db.commit()
+        db.refresh(doc)
+        updated = True
+
+    return {
+        "document_id": doc.id,
+        "current_category": doc.category.value,
+        "suggested_category": category.value,
+        "confidence": confidence,
+        "applied": updated,
+        "security_note": "AI classification never modifies document access permissions."
     }
