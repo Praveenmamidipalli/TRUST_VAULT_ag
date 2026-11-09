@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Stage 3: Final Production Container
 FROM python:3.11-slim
@@ -27,8 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=backend-builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+# Copy python dependencies to /usr/local with universal read/exec permissions
+COPY --from=backend-builder /install /usr/local
 
 RUN useradd -m -u 1001 trustvault && \
     mkdir -p /app/storage/private && \
@@ -44,4 +44,4 @@ COPY --from=frontend-builder --chown=trustvault:trustvault /frontend/dist /app/f
 USER trustvault
 EXPOSE 8000 10000
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
