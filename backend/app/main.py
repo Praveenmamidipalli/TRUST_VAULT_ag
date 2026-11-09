@@ -3,7 +3,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import engine, Base, SessionLocal
+from app.core.bootstrap import bootstrap_database_if_empty
+from app.models.document import Document
+from app.ai.vector_store import vector_store
 from app.routes.auth import router as auth_router
 from app.routes.documents import router as documents_router
 from app.routes.permissions import router as permissions_router
@@ -20,11 +23,15 @@ async def lifespan(app: FastAPI):
     # Initialize database tables on application startup
     Base.metadata.create_all(bind=engine)
 
+    # Automatically bootstrap demo users and initial documents if database is empty
+    try:
+        with SessionLocal() as db:
+            bootstrap_database_if_empty(db)
+    except Exception as e:
+        print(f"[!] Warning during database bootstrap: {e}")
+
     # Pre-index existing documents with extracted text into the in-memory vector store
     try:
-        from app.core.database import SessionLocal
-        from app.models.document import Document
-        from app.ai.vector_store import vector_store
         with SessionLocal() as db:
             docs = db.query(Document).filter(Document.extracted_text.isnot(None)).all()
             for doc in docs:
@@ -43,10 +50,12 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Middleware
+# CORS Middleware (Supports local dev, production domains, and Vercel cloud deployments)
+cors_origins = list(settings.CORS_ORIGINS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=cors_origins if "*" not in cors_origins else ["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.tmp\.now" if "*" not in cors_origins else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

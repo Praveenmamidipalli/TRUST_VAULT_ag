@@ -133,7 +133,7 @@ export const LoginPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setDemoAccount('bob_viewer', 'ViewerPass123!')}
+                onClick={() => setDemoAccount('carol_viewer', 'ViewerPass123!')}
                 className="py-1 px-2 text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200 rounded hover:bg-gray-100 transition-colors"
               >
                 Viewer Demo
