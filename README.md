@@ -149,8 +149,8 @@ Launch the entire stack (PostgreSQL, Backend API, and Frontend SPA):
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Praveenmamidipalli/TrustVault.git
-cd TrustVault
+git clone https://github.com/Praveenmamidipalli/TRUST_VAULT_ag.git
+cd TRUST_VAULT_ag
 
 # 2. Configure environment secrets (MANDATORY: Compose refuses to start without these)
 # Copy example configuration template
@@ -185,7 +185,7 @@ docker-compose exec backend python scripts/seed_db.py
 #### 1. Backend Setup
 ```bash
 # Navigate to workspace root
-cd TrustVault
+cd TRUST_VAULT_ag
 
 # Create and activate Python virtual environment
 python -m venv .venv
