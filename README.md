@@ -7,6 +7,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://www.docker.com/)
 [![Security First](https://img.shields.io/badge/Security-First-brightgreen.svg)](#core-security-invariants)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Praveenmamidipalli/TRUST_VAULT_ag)
 
 **TrustVault** is a production-grade enterprise document management and AI intelligence platform built from the ground up on a **"Security First. AI Second."** architecture. Designed to solve enterprise document sprawl, unauthorized lateral sharing, and untraceable access, TrustVault enforces strict deny-by-default role-based access control (RBAC), fine-grained per-document permissions, instant access revocation, cryptographically chained audit trails, and zero-leakage offline AI search and Q&A.
 
