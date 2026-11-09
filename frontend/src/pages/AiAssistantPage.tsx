@@ -75,22 +75,22 @@ export const AiAssistantPage: React.FC = () => {
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="text-gray-400 font-medium py-1">Try asking:</span>
         <button
-          onClick={() => handlePredefined('What are the payment deadlines and penalty terms?')}
+          onClick={() => handlePredefined('What are the payment terms and revenue figures?')}
           className="px-3 py-1 bg-white border border-gray-200 rounded-full hover:border-vault-500 text-gray-700 transition-colors"
         >
-          Payment deadlines and penalties
+          Payment terms & revenue
         </button>
         <button
-          onClick={() => handlePredefined('Summarize confidentiality and non-disclosure obligations')}
+          onClick={() => handlePredefined('What is the executive equity vesting schedule?')}
           className="px-3 py-1 bg-white border border-gray-200 rounded-full hover:border-vault-500 text-gray-700 transition-colors"
         >
-          Confidentiality obligations
+          Equity vesting schedule
         </button>
         <button
-          onClick={() => handlePredefined('What compliance standards or certifications are cited?')}
+          onClick={() => handlePredefined('What are the mutual non-disclosure and trade secret obligations?')}
           className="px-3 py-1 bg-white border border-gray-200 rounded-full hover:border-vault-500 text-gray-700 transition-colors"
         >
-          Compliance standards
+          Confidentiality & trade secrets
         </button>
       </div>
 

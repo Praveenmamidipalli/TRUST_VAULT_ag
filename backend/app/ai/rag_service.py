@@ -27,13 +27,10 @@ class RAGService:
         if not user.is_active:
             return []
 
-        # Subquery for shared document IDs (must be active)
+        # Subquery for shared document IDs
         shared_subquery = (
             db.query(DocumentPermission.document_id)
-            .filter(
-                DocumentPermission.user_id == user.id,
-                DocumentPermission.is_active.is_(True)
-            )
+            .filter(DocumentPermission.user_id == user.id)
             .subquery()
         )
 
@@ -83,7 +80,7 @@ class RAGService:
             query=question,
             authorized_document_ids=authorized_ids,
             top_k=4,
-            min_similarity=0.05
+            min_similarity=0.12
         )
 
         # 4. Handle insufficient evidence
