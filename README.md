@@ -133,17 +133,38 @@ TrustVault is engineered around non-negotiable security principles:
 
 ### Option A: Docker Compose (Production Ready)
 
-Launch the entire stack (PostgreSQL, Backend API, and Frontend SPA) with a single command:
+Create a local `.env` file and configure independent random values for `SECRET_KEY`
+and `POSTGRES_PASSWORD` before starting the stack. For each value, generate a
+64-character hexadecimal secret with:
 
 ```bash
-# Clone the repository
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Copy `.env.example` to `.env` (PowerShell: `Copy-Item .env.example .env`) and
+replace both empty values with separately generated secrets. Compose will refuse
+to start if either value is missing. Do not commit `.env`.
+
+Launch the entire stack (PostgreSQL, Backend API, and Frontend SPA):
+
+```bash
+# 1. Clone the repository
 git clone https://github.com/Praveenmamidipalli/TrustVault.git
 cd TrustVault
 
-# Launch multi-container stack in detached mode
+# 2. Configure environment secrets (MANDATORY: Compose refuses to start without these)
+# Copy example configuration template
+cp .env.example .env    # On Windows PowerShell: Copy-Item .env.example .env
+
+# Generate independent cryptographically secure 64-character secrets:
+python -c "import secrets; print('SECRET_KEY=' + secrets.token_hex(32))"
+python -c "import secrets; print('POSTGRES_PASSWORD=' + secrets.token_hex(32))"
+# Set SECRET_KEY and POSTGRES_PASSWORD in your .env file
+
+# 3. Launch multi-container stack in detached mode
 docker-compose up --build -d
 
-# Verify all containers are healthy
+# 4. Verify all containers are healthy
 docker-compose ps
 ```
 
@@ -175,6 +196,11 @@ source .venv/bin/activate
 
 # Install backend dependencies
 pip install -r backend/requirements.txt
+
+# Set a fresh signing key in this shell (PowerShell):
+$env:SECRET_KEY = (python -c "import secrets; print(secrets.token_hex(32))")
+# Bash alternative:
+export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
 
 # Run database seeder (initializes database and demo accounts)
 python scripts/seed_db.py
@@ -222,46 +248,50 @@ All routes are versioned under `/api/v1`. Protected endpoints require standard `
 | :--- | :--- | :--- | :--- |
 | `POST` | `/register` | Self-register new user account (defaults to `VIEWER` or `OWNER`). | No |
 | `POST` | `/login` | Authenticate using username and password; returns JWT token. | No |
+| `POST` | `/logout` | Record logout for audit; client token is not server-revoked. | Yes |
 | `GET` | `/me` | Retrieve profile and assigned role of authenticated user. | Yes |
 
 ### 2. Document Management (`/api/v1/documents`)
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/upload` | Upload new document with magic-byte and MIME validation. | Yes (`OWNER`, `ADMIN`) |
+| `POST` | `/` | Upload new document with extension, size, and signature validation. | Yes (`OWNER`, `ADMIN`) |
 | `GET` | `/` | List all documents the user is authorized to access (owned or shared). | Yes |
-| `GET` | `/{doc_id}` | Retrieve document metadata (authorized users only). | Yes |
-| `GET` | `/{doc_id}/download` | Stream document file content securely (validates `READ`). | Yes |
-| `PUT` | `/{doc_id}` | Update document title, description, or category (validates `EDIT`). | Yes |
-| `DELETE`| `/{doc_id}` | Soft/hard delete document and remove storage file (Owner only). | Yes |
+| `GET` | `/{document_id}` | Retrieve document metadata (authorized users only). | Yes |
+| `GET` | `/{document_id}/download` | Stream document file content securely (validates `READ`). | Yes |
+| `PATCH` | `/{document_id}` | Update document metadata (validates `EDIT`). | Yes |
+| `DELETE`| `/{document_id}` | Delete document and remove storage file (Owner only). | Yes |
 
-### 3. Permissions & Sharing (`/api/v1/permissions`)
+### 3. Permissions & Sharing (`/api/v1/documents/{document_id}/permissions`)
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/{doc_id}/grant` | Grant `READ` or `EDIT` permission to another registered user. | Yes (Owner only) |
-| `DELETE`| `/{doc_id}/revoke/{user_id}` | Immediately revoke user's document permission. | Yes (Owner only) |
-| `GET` | `/{doc_id}/grants` | List all active permission grants for a document. | Yes (Owner only) |
+| `POST` | `/` | Grant or update `READ`/`EDIT` permission for a registered user. | Yes (Owner only) |
+| `GET` | `/` | List permission grants for the document. | Yes (Owner only) |
+| `DELETE`| `/{permission_id}` | Immediately revoke the selected grant. | Yes (Owner only) |
 
 ### 4. Audit & Compliance (`/api/v1/audit`)
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/` | Query audit log trail with pagination and action filtering. | Yes (`ADMIN`, `OWNER`) |
+| `GET` | `/` | Query audit log trail with pagination and action filtering. | Yes (`ADMIN`) |
+| `GET` | `/documents/{document_id}` | Read activity for an owned document or as an admin. | Yes |
 | `GET` | `/verify` | Recalculate cryptographic SHA-256 hash chain and report tamper status. | Yes (`ADMIN`) |
 
 ### 5. Administration (`/api/v1/admin`)
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/users` | List all platform users, roles, and active statuses. | Yes (`ADMIN`) |
-| `POST` | `/users` | Administrator-provisioned user creation. | Yes (`ADMIN`) |
-| `PUT` | `/users/{user_id}/status` | Activate or deactivate user accounts. | Yes (`ADMIN`) |
-| `PUT` | `/users/{user_id}/role` | Promote or change user platform role. | Yes (`ADMIN`) |
+| `PATCH` | `/users/{user_id}` | Update a user's role and/or active status. | Yes (`ADMIN`) |
+| `GET` | `/reports` | View aggregate administrative and compliance metrics. | Yes (`ADMIN`) |
 | `GET` | `/reports/export` | Export compliance activity log as CSV. | Yes (`ADMIN`) |
+| `GET` | `/anomalies` | Review security anomaly alerts. | Yes (`ADMIN`) |
 
 ### 6. AI & Document Intelligence (`/api/v1/ai`)
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/query` | Ask natural language question across authorized document corpus. | Yes |
-| `POST` | `/classify` | Automatically predict document category via ML classifier. | Yes |
-| `GET` | `/anomalies` | Review security audit anomaly detection scores. | Yes (`ADMIN`) |
+| `POST` | `/ask` | Ask a question across the authorized document corpus. | Yes |
+| `POST` | `/search` | Search authorized document chunks. | Yes |
+| `GET` | `/documents/{document_id}/status` | Read extraction/classification status. | Yes (document access required) |
+| `POST` | `/classify` | Classify supplied text. | Yes |
+| `POST` | `/documents/{document_id}/classify` | Classify a document; applying changes requires edit access. | Yes (document access required) |
 
 ---
 

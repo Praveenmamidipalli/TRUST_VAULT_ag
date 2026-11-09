@@ -1,8 +1,21 @@
+import atexit
+import os
+import secrets
+import shutil
+import tempfile
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
+
+# Keep test startup isolated from developer databases and project storage.
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["SECRET_KEY"] = secrets.token_hex(32)
+_test_storage_dir = tempfile.mkdtemp(prefix="trustvault-pytest-")
+os.environ["STORAGE_DIR"] = _test_storage_dir
+atexit.register(shutil.rmtree, _test_storage_dir, ignore_errors=True)
 
 from app.core.database import Base, get_db
 from app.main import app

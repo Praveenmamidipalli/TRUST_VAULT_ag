@@ -1,5 +1,3 @@
-# NOTE: Default passwords/keys below are fallback values strictly for local evaluation
-# and demo environments. Production deployments MUST override them via .env or secret managers.
 services:
   postgres:
     image: postgres:16-alpine
@@ -8,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-trustvault}
       POSTGRES_USER: ${POSTGRES_USER:-vaultadmin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_env_file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -29,8 +27,8 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-vaultadmin}:${POSTGRES_PASSWORD:-change_me_in_env_file}@postgres:5432/${POSTGRES_DB:-trustvault}
-      SECRET_KEY: ${SECRET_KEY:-change_me_with_openssl_rand_hex_32}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vaultadmin}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-trustvault}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       ACCESS_TOKEN_EXPIRE_MINUTES: 1440
       STORAGE_DIR: /app/storage/private
     volumes:
