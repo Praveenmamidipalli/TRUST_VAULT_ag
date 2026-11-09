@@ -4,6 +4,7 @@ from sqlalchemy import or_
 
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token
+from app.core.rate_limiter import auth_rate_limiter
 from app.models.user import User
 from app.models.enums import UserRole, AuditAction, AuditResult
 from app.schemas.user import UserCreate, UserLogin, UserOut, TokenResponse
@@ -27,7 +28,6 @@ def register(
     - Default public registrations are assigned VIEWER or OWNER; ADMIN cannot be self-assigned.
     - Emits a cryptographic audit log record.
     """
-    # Check if email or username already exists
     existing_user = db.query(User).filter(
         or_(User.email == user_in.email, User.username == user_in.username)
     ).first()
@@ -37,7 +37,6 @@ def register(
             detail="A user with that email or username already exists."
         )
 
-    # Disallow self-registration as ADMIN
     assigned_role = user_in.role if user_in.role in (UserRole.OWNER, UserRole.VIEWER) else UserRole.VIEWER
 
     user = User(
@@ -52,7 +51,6 @@ def register(
     db.commit()
     db.refresh(user)
 
-    # Audit log registration
     client_ip = request.client.host if request.client else "unknown"
     AuditService.log_event(
         db=db,
@@ -83,17 +81,34 @@ def login(
     
     Security:
     - Protects against user enumeration by returning identical error messages.
+    - Sliding-window rate limiter blocks brute-force and credential stuffing attacks (max 5 attempts/min).
     - Rejects inactive or suspended accounts immediately.
     - Emits tamper-evident audit records for both successful and failed attempts.
     """
     client_ip = request.client.host if request.client else "unknown"
+    rate_key = f"{client_ip}:{credentials.username_or_email.lower().strip()}"
+
+    # Brute-force & rate-limiting check
+    is_limited, retry_after = auth_rate_limiter.is_rate_limited(rate_key)
+    if is_limited:
+        AuditService.log_event(
+            db=db,
+            action=AuditAction.USER_LOGIN_FAILED,
+            result=AuditResult.DENIED,
+            details={"ip": client_ip, "reason": "Rate limit exceeded (brute-force defense)", "retry_after": retry_after}
+        )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many failed login attempts. Rate limit exceeded. Please wait {retry_after} seconds.",
+            headers={"Retry-After": str(retry_after)}
+        )
     
     user = db.query(User).filter(
         or_(User.username == credentials.username_or_email, User.email == credentials.username_or_email)
     ).first()
 
     if not user or not verify_password(credentials.password, user.hashed_password):
-        # Audit log failed login
+        auth_rate_limiter.record_failure(rate_key)
         AuditService.log_event(
             db=db,
             action=AuditAction.USER_LOGIN_FAILED,
@@ -120,7 +135,9 @@ def login(
             detail="Account is deactivated. Please contact an administrator."
         )
 
-    # Audit log successful login
+    # Successful login: reset rate limiter for this user/IP
+    auth_rate_limiter.reset(rate_key)
+
     AuditService.log_event(
         db=db,
         action=AuditAction.USER_LOGIN_SUCCESS,
