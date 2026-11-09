@@ -1,3 +1,5 @@
+# NOTE: Default passwords/keys below are fallback values strictly for local evaluation
+# and demo environments. Production deployments MUST override them via .env or secret managers.
 services:
   postgres:
     image: postgres:16-alpine

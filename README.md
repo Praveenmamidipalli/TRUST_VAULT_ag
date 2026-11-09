@@ -137,8 +137,8 @@ Launch the entire stack (PostgreSQL, Backend API, and Frontend SPA) with a singl
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/Trust_vault_AG.git
-cd Trust_vault_AG
+git clone https://github.com/Praveenmamidipalli/TrustVault.git
+cd TrustVault
 
 # Launch multi-container stack in detached mode
 docker-compose up --build -d
@@ -164,7 +164,7 @@ docker-compose exec backend python scripts/seed_db.py
 #### 1. Backend Setup
 ```bash
 # Navigate to workspace root
-cd Trust_vault_AG
+cd TrustVault
 
 # Create and activate Python virtual environment
 python -m venv .venv
