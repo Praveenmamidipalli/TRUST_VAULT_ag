@@ -9,25 +9,25 @@ export const Navbar: React.FC = () => {
   const getRoleBadge = () => {
     switch (user?.role) {
       case 'ADMIN':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">ADMIN</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">ADMIN</span>;
       case 'OWNER':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">OWNER</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">OWNER</span>;
       case 'VIEWER':
       default:
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">VIEWER</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">VIEWER</span>;
     }
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 h-16 fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-6">
+    <header className="bg-white/90 backdrop-blur-md border-b border-sky-100 h-16 fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-6 shadow-xs">
       <div className="flex items-center space-x-3">
-        <div className="bg-vault-900 p-2 rounded-lg text-white">
+        <div className="bg-gradient-to-tr from-sky-600 to-blue-700 p-2 rounded-xl text-white shadow-sm shadow-sky-500/20">
           <ShieldCheck className="w-5 h-5" />
         </div>
-        <Link to="/" className="text-xl font-bold tracking-tight text-vault-950">
-          Trust<span className="text-vault-600">Vault</span>
+        <Link to="/" className="text-xl font-bold tracking-tight text-slate-900">
+          Trust<span className="text-sky-600 font-extrabold">Vault</span>
         </Link>
-        <span className="hidden sm:inline-block text-xs uppercase tracking-wider text-gray-400 font-medium ml-2">
+        <span className="hidden sm:inline-block text-[11px] uppercase tracking-widest text-sky-700/80 font-semibold bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100 ml-2">
           Enterprise Security
         </span>
       </div>
@@ -36,13 +36,13 @@ export const Navbar: React.FC = () => {
         {user && (
           <div className="flex items-center space-x-3">
             {getRoleBadge()}
-            <div className="flex items-center space-x-2 text-sm text-gray-700">
-              <UserIcon className="w-4 h-4 text-gray-400" />
-              <span className="font-medium">{user.full_name || user.username}</span>
+            <div className="flex items-center space-x-2 text-sm text-slate-700 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200/60">
+              <UserIcon className="w-4 h-4 text-sky-600" />
+              <span className="font-medium text-xs sm:text-sm">{user.full_name || user.username}</span>
             </div>
             <button
               onClick={logout}
-              className="text-gray-500 hover:text-red-600 p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+              className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />

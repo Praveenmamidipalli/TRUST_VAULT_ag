@@ -14,10 +14,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requiredRole }) 
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center space-y-3">
-          <div className="w-8 h-8 border-4 border-vault-600 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm text-gray-500 font-medium">Verifying authorization...</span>
+          <div className="w-8 h-8 border-4 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm text-slate-500 font-medium">Verifying authorization...</span>
         </div>
       </div>
     );
@@ -32,7 +32,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requiredRole }) 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50/20 to-blue-50/20 flex flex-col text-slate-800">
       <Navbar />
       <div className="flex flex-1 pt-16">
         <Sidebar />
