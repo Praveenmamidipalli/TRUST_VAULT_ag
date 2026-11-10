@@ -11,6 +11,8 @@ services:
     envVars:
       - key: DATABASE_URL
         value: sqlite:///./trustvault.db
+      - key: STORAGE_DIR
+        value: /app/storage/private
       - key: SECRET_KEY
         generateValue: true
       - key: ACCESS_TOKEN_EXPIRE_MINUTES

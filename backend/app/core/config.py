@@ -18,7 +18,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./trustvault.db"
     
     # Private Storage
-    STORAGE_DIR: str = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../storage/private"))
+    STORAGE_DIR: str = os.environ.get(
+        "STORAGE_DIR",
+        os.path.abspath(os.path.join(os.getcwd(), "storage", "private"))
+    )
     MAX_FILE_SIZE_BYTES: int = 50 * 1024 * 1024  # 50 MB
     
     # CORS
@@ -58,5 +61,9 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Ensure private storage directory exists
-os.makedirs(settings.STORAGE_DIR, exist_ok=True)
+# Ensure private storage directory exists gracefully
+try:
+    os.makedirs(settings.STORAGE_DIR, exist_ok=True)
+except Exception as e:
+    print(f"[!] Storage directory initialization warning: {e}")
+

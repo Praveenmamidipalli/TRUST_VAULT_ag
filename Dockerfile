@@ -41,6 +41,10 @@ COPY --chown=trustvault:trustvault backend/ /app/
 # Copy compiled React frontend
 COPY --from=frontend-builder --chown=trustvault:trustvault /frontend/dist /app/frontend/dist
 
+RUN mkdir -p /app/storage/private && \
+    chown -R trustvault:trustvault /app && \
+    chmod -R 775 /app/storage
+
 USER trustvault
 EXPOSE 8000 10000
 
